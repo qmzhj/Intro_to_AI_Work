@@ -22,7 +22,7 @@ class Transition(NamedTuple):
 class ReplayBuffer:
     """经验回放缓冲区"""
 
-    def __init__(self, capacity: int = 10000):
+    def __init__(self, capacity: int = 1000):
         """
         初始化经验回放缓冲区
 
@@ -63,15 +63,29 @@ class ReplayBuffer:
         Returns:
             批次数据
         """
-        transitions = random.sample(self.buffer, batch_size)
-
-        # 分离数据
-        states = torch.FloatTensor(np.array([t.state for t in transitions]))
-        actions = torch.LongTensor(np.array([t.action for t in transitions]))
-        rewards = torch.FloatTensor(np.array([t.reward for t in transitions]))
-        next_states = torch.FloatTensor(np.array([t.next_state for t in transitions]))
-        dones = torch.BoolTensor(np.array([t.done for t in transitions]))
-
+        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+    
+        # 预分配张量
+        batch = [self.buffer[idx] for idx in indices]
+    
+        # 获取第一个状态来获取形状
+        first_state = batch[0].state
+    
+        # 预分配张量
+        states = torch.empty((batch_size, *first_state.shape), dtype=torch.float32)
+        actions = torch.empty(batch_size, dtype=torch.long)
+        rewards = torch.empty(batch_size, dtype=torch.float32)
+        next_states = torch.empty((batch_size, *first_state.shape), dtype=torch.float32)
+        dones = torch.empty(batch_size, dtype=torch.bool)
+    
+        # 填充张量
+        for i, t in enumerate(batch):
+            states[i] = torch.from_numpy(t.state)
+            actions[i] = torch.tensor(t.action, dtype=torch.long)
+            rewards[i] = torch.tensor(t.reward, dtype=torch.float32)
+            next_states[i] = torch.from_numpy(t.next_state)
+            dones[i] = torch.tensor(t.done, dtype=torch.bool)
+    
         return states, actions, rewards, next_states, dones
 
     def __len__(self) -> int:

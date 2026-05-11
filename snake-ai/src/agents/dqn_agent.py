@@ -24,14 +24,14 @@ class DQNAgent:
         self,
         state_shape: Tuple[int, int, int],
         n_actions: int = 4,
-        learning_rate: float = 1e-4,
+        learning_rate: float = 3e-4,
         gamma: float = 0.99,
         epsilon_start: float = 1.0,
         epsilon_end: float = 0.01,
         epsilon_decay: float = 0.995,
-        buffer_size: int = 10000,
-        batch_size: int = 32,
-        target_update_freq: int = 1000,
+        buffer_size: int = 50000,
+        batch_size: int = 64,
+        target_update_freq: int = 500,
         device: str = None
     ):
         """
@@ -53,7 +53,7 @@ class DQNAgent:
         self.state_shape = state_shape
         self.n_actions = n_actions
         self.gamma = gamma
-        # self.epsilon = epsilon_start
+        self.epsilon = epsilon_start
         self.epsilon_start = epsilon_start
         self.epsilon_end = epsilon_end
         self.epsilon_decay = epsilon_decay
@@ -165,9 +165,8 @@ class DQNAgent:
         if self.training_steps % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        # 衰减探索率
-        if self.epsilon > self.epsilon_end:
-            self.epsilon *= self.epsilon_decay
+        # 注意：epsilon 衰减由 update_epsilon() 线性控制，
+        # 不在 train_step 内做乘性衰减，避免双重衰减导致探索过快消失
 
         return loss.item()
 

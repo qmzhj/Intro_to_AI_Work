@@ -26,9 +26,9 @@ def train_agent():
         grid_width=Config.GRID_WIDTH,
         grid_height=Config.GRID_HEIGHT,
         cell_size=Config.CELL_SIZE,
-        render_mode=None  # 训练时不渲染
+        render_mode=None,  # 训练时不渲染
+        max_steps=Config.MAX_STEPS_PER_EPISODE,
     )
-
     # 创建智能体
     agent = DQNAgent(
         state_shape=env.observation_space_shape,

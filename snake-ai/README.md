@@ -162,7 +162,7 @@ python src/models/cnn_model.py
 ### 3. 测试智能体
 
 ```bash
-python src/agents/dqn_agent.py
+python -m src.agents.dqn_agent
 ```
 
 这会测试 DQN 智能体的基本功能。

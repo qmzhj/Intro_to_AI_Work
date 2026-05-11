@@ -22,10 +22,11 @@ class SnakeEnv:
 
     def __init__(
         self,
-        grid_width: int = 30,
-        grid_height: int = 20,
+        grid_width: int = 12,
+        grid_height: int = 12,
         cell_size: int = 20,
-        render_mode: Optional[str] = None
+        render_mode: Optional[str] = None,
+        max_steps: Optional[int] = None,
     ):
         """
         初始化贪吃蛇环境
@@ -35,6 +36,7 @@ class SnakeEnv:
             grid_height: 网格高度（格子数）
             cell_size: 每个格子的像素大小
             render_mode: 渲染模式 ('human', None)
+            max_steps: 每回合最大步数（默认 grid_width * grid_height）
         """
         self.grid_width = grid_width
         self.grid_height = grid_height
@@ -76,7 +78,7 @@ class SnakeEnv:
         self.food_position = None
         self.score = 0
         self.steps = 0
-        self.max_steps = 1000  # 防止无限循环
+        self.max_steps = max_steps if max_steps is not None else (grid_width * grid_height)
 
     def reset(self) -> np.ndarray:
         """
