@@ -55,9 +55,10 @@ class SnakeEnv:
         self.COLOR_GRID = (40, 40, 40)
 
         # 奖励参数
-        self.REWARD_FOOD = 10
-        self.REWARD_DEATH = -100
-        self.REWARD_STEP = -0.1  # 鼓励快速完成任务
+        # 平衡原则：吃 1 个食物就能显著改善总奖励，让追食物成为主要信号
+        self.REWARD_FOOD = 30       # 食物奖励（略高于死亡惩罚，让吃食物变得诱人）
+        self.REWARD_DEATH = -20     # 死亡惩罚（不压过食物奖励，-30 食物 + -20 死亡 -> 净正收益）
+        self.REWARD_STEP = -0.05    # 每步小惩罚（鼓励高效觅食，但远轻于食物/死亡信号）
 
         # 方向映射
         self.direction_map = {
@@ -127,15 +128,21 @@ class SnakeEnv:
 
         # 计算新头部位置
         head = self.snake_positions[0]
-        new_x = (head[0] + self.direction_map[self.direction][0]) % self.grid_width
-        new_y = (head[1] + self.direction_map[self.direction][1]) % self.grid_height
+        dx, dy = self.direction_map[self.direction]
+        new_x = head[0] + dx
+        new_y = head[1] + dy
         new_head = (new_x, new_y)
 
-        # 检查是否撞到自己
+        # 检查是否撞墙（去掉环绕，撞墙即死）
         done = False
         reward = self.REWARD_STEP
 
-        if new_head in self.snake_positions[1:]:
+        if (new_x < 0 or new_x >= self.grid_width or
+            new_y < 0 or new_y >= self.grid_height):
+            # 撞墙
+            done = True
+            reward = self.REWARD_DEATH
+        elif new_head in self.snake_positions[1:]:
             # 撞到自己
             done = True
             reward = self.REWARD_DEATH

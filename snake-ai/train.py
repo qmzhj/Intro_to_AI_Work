@@ -46,6 +46,7 @@ def train_agent():
     # 训练统计
     episode_rewards = []
     episode_lengths = []
+    episode_scores = []
     best_eval_reward = float('-inf')
 
     # 创建实验目录
@@ -69,6 +70,7 @@ def train_agent():
         state = env.reset()
         episode_reward = 0
         episode_length = 0
+        episode_score = 0
 
         # 更新探索率
         agent.update_epsilon(episode, Config.TOTAL_EPISODES)
@@ -92,6 +94,7 @@ def train_agent():
             state = next_state
             episode_reward += reward
             episode_length += 1
+            episode_score = info['score']
 
             if done:
                 break
@@ -99,16 +102,19 @@ def train_agent():
         # 记录统计信息
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
+        episode_scores.append(episode_score)
 
         # 打印日志
         if (episode + 1) % Config.LOG_INTERVAL == 0:
             avg_reward = np.mean(episode_rewards[-Config.LOG_INTERVAL:])
             avg_length = np.mean(episode_lengths[-Config.LOG_INTERVAL:])
+            avg_score = np.mean(episode_scores[-Config.LOG_INTERVAL:])
 
             log_message = (
                 f"回合 {episode + 1}/{Config.TOTAL_EPISODES} | "
-                f"平均奖励: {avg_reward:.2f} | "
-                f"平均步数: {avg_length:.1f} | "
+                f"奖励: {avg_reward:.2f} | "
+                f"分数: {avg_score:.1f} | "
+                f"步数: {avg_length:.1f} | "
                 f"Epsilon: {agent.epsilon:.3f} | "
                 f"缓冲区: {len(agent.replay_buffer)} | "
                 f"损失: {loss if loss else 0:.4f}"
@@ -123,11 +129,8 @@ def train_agent():
         if (episode + 1) % Config.EVAL_FREQ == 0:
             eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES)
 
-            eval_log = f"  评估 | 平均奖励: {eval_reward:.2f}"
-            print(eval_log)
-
             with open(log_file, 'a') as f:
-                f.write(eval_log + '\n')
+                f.write(f"  评估 | 平均奖励: {eval_reward:.2f}\n")
 
             # 保存最佳模型
             if eval_reward > best_eval_reward:
@@ -144,9 +147,13 @@ def train_agent():
     # 训练结束
     total_time = time.time() - start_time
 
+    # 最后评估
+    final_eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES)
+
     print("\n训练完成!")
     print(f"总训练时间: {total_time / 3600:.2f} 小时")
     print(f"最佳评估奖励: {best_eval_reward:.2f}")
+    print(f"最终评估奖励: {final_eval_reward:.2f}")
 
     # 保存最终模型
     final_model_path = os.path.join(experiment_dir, 'final_model.pth')
@@ -174,6 +181,7 @@ def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10) -> floa
         平均奖励
     """
     total_rewards = []
+    total_scores = []
 
     for _ in range(n_episodes):
         state = env.reset()
@@ -189,10 +197,14 @@ def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10) -> floa
             state = next_state
 
             if done:
+                total_scores.append(info['score'])
                 break
 
         total_rewards.append(episode_reward)
 
+    avg_score = np.mean(total_scores) if total_scores else 0
+    # 额外打印分数信息
+    print(f"  [评估] 平均奖励: {np.mean(total_rewards):.2f} | 平均分数: {avg_score:.2f}")
     return np.mean(total_rewards)
 
 
