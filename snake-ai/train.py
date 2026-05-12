@@ -1,5 +1,6 @@
 """
 DQN训练脚本
+支持标准DQN / Double DQN / Dueling DQN
 """
 
 import os
@@ -18,8 +19,13 @@ from src.agents.dqn_agent import DQNAgent
 from config import Config
 
 
-def train_agent():
-    """训练DQN智能体"""
+def train_agent(algo: str = "dqn"):
+    """
+    训练DQN智能体（支持多种算法变体）
+
+    Args:
+        algo: 算法名称 "dqn" / "double_dqn" / "dueling_dqn"
+    """
 
     # 创建环境
     env = SnakeEnv(
@@ -40,7 +46,8 @@ def train_agent():
         epsilon_decay=Config.EPSILON_DECAY,
         buffer_size=Config.BUFFER_SIZE,
         batch_size=Config.BATCH_SIZE,
-        target_update_freq=Config.TARGET_UPDATE_FREQ
+        target_update_freq=Config.TARGET_UPDATE_FREQ,
+        algo=algo,
     )
 
     # 训练统计
@@ -49,15 +56,15 @@ def train_agent():
     episode_scores = []
     best_eval_reward = float('-inf')
 
-    # 创建实验目录
-    experiment_name = f"dqn_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # 创建实验目录（带算法名）
+    experiment_name = f"{algo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     experiment_dir = os.path.join(Config.EXPERIMENT_DIR, experiment_name)
     os.makedirs(experiment_dir, exist_ok=True)
 
     # 创建日志文件
     log_file = os.path.join(experiment_dir, 'training_log.txt')
 
-    print(f"开始训练 DQN 智能体")
+    print(f"\n开始训练 {algo} 智能体")
     print(f"实验目录: {experiment_dir}")
     print(f"总回合数: {Config.TOTAL_EPISODES}")
     print(f"使用设备: {agent.device}")
@@ -111,7 +118,7 @@ def train_agent():
             avg_score = np.mean(episode_scores[-Config.LOG_INTERVAL:])
 
             log_message = (
-                f"回合 {episode + 1}/{Config.TOTAL_EPISODES} | "
+                f"[{algo}] 回合 {episode + 1}/{Config.TOTAL_EPISODES} | "
                 f"奖励: {avg_reward:.2f} | "
                 f"分数: {avg_score:.1f} | "
                 f"步数: {avg_length:.1f} | "
@@ -127,10 +134,10 @@ def train_agent():
 
         # 评估智能体
         if (episode + 1) % Config.EVAL_FREQ == 0:
-            eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES)
+            eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES, algo)
 
             with open(log_file, 'a') as f:
-                f.write(f"  评估 | 平均奖励: {eval_reward:.2f}\n")
+                f.write(f"  [{algo} 评估] 平均奖励: {eval_reward:.2f}\n")
 
             # 保存最佳模型
             if eval_reward > best_eval_reward:
@@ -148,9 +155,9 @@ def train_agent():
     total_time = time.time() - start_time
 
     # 最后评估
-    final_eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES)
+    final_eval_reward = evaluate_agent(env, agent, Config.EVAL_EPISODES, algo)
 
-    print("\n训练完成!")
+    print(f"\n{algo} 训练完成!")
     print(f"总训练时间: {total_time / 3600:.2f} 小时")
     print(f"最佳评估奖励: {best_eval_reward:.2f}")
     print(f"最终评估奖励: {final_eval_reward:.2f}")
@@ -168,7 +175,7 @@ def train_agent():
     return agent, experiment_dir
 
 
-def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10) -> float:
+def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10, algo: str = "dqn") -> float:
     """
     评估智能体性能
 
@@ -176,6 +183,7 @@ def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10) -> floa
         env: 游戏环境
         agent: 智能体
         n_episodes: 评估回合数
+        algo: 算法名称（仅用于日志）
 
     Returns:
         平均奖励
@@ -204,7 +212,7 @@ def evaluate_agent(env: SnakeEnv, agent: DQNAgent, n_episodes: int = 10) -> floa
 
     avg_score = np.mean(total_scores) if total_scores else 0
     # 额外打印分数信息
-    print(f"  [评估] 平均奖励: {np.mean(total_rewards):.2f} | 平均分数: {avg_score:.2f}")
+    print(f"  [{algo} 评估] 平均奖励: {np.mean(total_rewards):.2f} | 平均分数: {avg_score:.2f}")
     return np.mean(total_rewards)
 
 
@@ -215,6 +223,8 @@ def test_trained_agent(model_path: str):
     Args:
         model_path: 模型路径
     """
+    import pygame
+
     # 创建环境
     env = SnakeEnv(
         grid_width=Config.GRID_WIDTH,
@@ -223,10 +233,15 @@ def test_trained_agent(model_path: str):
         render_mode='human'
     )
 
-    # 创建智能体
+    # 创建智能体（先从 checkpoint 读取 algo 信息）
+    checkpoint = torch.load(model_path, map_location='cpu')
+    algo = checkpoint.get('algo', 'dqn')
+    print(f"加载模型，算法: {algo}")
+
     agent = DQNAgent(
         state_shape=env.observation_space_shape,
-        n_actions=env.action_space
+        n_actions=env.action_space,
+        algo=algo,
     )
 
     # 加载模型
@@ -273,17 +288,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='贪吃蛇DQN训练')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'test'],
                         help='运行模式: train 或 test')
+    parser.add_argument('--algo', type=str, default='dqn',
+                        choices=['dqn', 'double_dqn', 'dueling_dqn'],
+                        help='算法变体: dqn / double_dqn / dueling_dqn')
     parser.add_argument('--model', type=str, default=None,
                         help='测试模式下的模型路径')
 
     args = parser.parse_args()
 
     if args.mode == 'train':
-        train_agent()
+        train_agent(algo=args.algo)
     elif args.mode == 'test':
         if args.model is None:
             print("错误: 测试模式需要指定模型路径")
             print("使用方法: python train.py --mode test --model checkpoints/best_model.pth")
         else:
-            import pygame
             test_trained_agent(args.model)

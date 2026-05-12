@@ -33,6 +33,9 @@ class Config:
     EVAL_FREQ = 100             # 每N个回合评估一次
     EVAL_EPISODES = 10          # 评估回合数
 
+    # 算法选择（仅做默认值，实际由命令行 --algo 覆盖）
+    ALGO = "dqn"  # 可选: dqn / double_dqn / dueling_dqn
+
     # DQN配置
     LEARNING_RATE = 3e-4        # 略微提高，加快收敛
     GAMMA = 0.99
