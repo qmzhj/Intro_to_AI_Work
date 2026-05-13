@@ -56,9 +56,10 @@ class SnakeEnv:
 
         # 奖励参数
         # 平衡原则：吃 1 个食物就能显著改善总奖励，让追食物成为主要信号
-        self.REWARD_FOOD = 30       # 食物奖励（略高于死亡惩罚，让吃食物变得诱人）
-        self.REWARD_DEATH = -20     # 死亡惩罚（不压过食物奖励，-30 食物 + -20 死亡 -> 净正收益）
-        self.REWARD_STEP = -0.05    # 每步小惩罚（鼓励高效觅食，但远轻于食物/死亡信号）
+        self.REWARD_FOOD = 30           # 食物奖励
+        self.REWARD_DEATH = -20         # 死亡惩罚
+        self.REWARD_STEP = -0.01        # 每步小惩罚（鼓励高效，但不压制探索）
+        self.REWARD_PROXIMITY_COEF = 0.5  # 距离变化奖励系数
 
         # 方向映射
         self.direction_map = {
@@ -99,6 +100,9 @@ class SnakeEnv:
         # 生成食物
         self.food_position = self._generate_food()
 
+        # 记录初始距离（用于距离奖励）
+        self._prev_distance = self._distance_to_food()
+
         # 初始化渲染
         if self.render_mode == 'human' and self.screen is None:
             self._init_render()
@@ -133,9 +137,15 @@ class SnakeEnv:
         new_y = head[1] + dy
         new_head = (new_x, new_y)
 
+        # 计算距离变化奖励（仅当蛇未死时累加）
+        new_distance = self._distance_to_food(new_head)
+        distance_change = self._prev_distance - new_distance
+        proximity_reward = self.REWARD_PROXIMITY_COEF * distance_change
+        self._prev_distance = new_distance
+
         # 检查是否撞墙（去掉环绕，撞墙即死）
         done = False
-        reward = self.REWARD_STEP
+        reward = self.REWARD_STEP + proximity_reward
 
         if (new_x < 0 or new_x >= self.grid_width or
             new_y < 0 or new_y >= self.grid_height):
@@ -175,6 +185,20 @@ class SnakeEnv:
         }
 
         return observation, reward, done, info
+
+    def _distance_to_food(self, position: Tuple[int, int] = None) -> float:
+        """
+        计算蛇头到食物的曼哈顿距离
+
+        Args:
+            position: 目标位置（默认使用蛇头）
+
+        Returns:
+            曼哈顿距离
+        """
+        if position is None:
+            position = self.snake_positions[0]
+        return abs(position[0] - self.food_position[0]) + abs(position[1] - self.food_position[1])
 
     def _generate_food(self) -> Tuple[int, int]:
         """生成食物位置"""

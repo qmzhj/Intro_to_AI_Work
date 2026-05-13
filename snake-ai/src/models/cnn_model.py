@@ -25,7 +25,7 @@ class CNNModel(nn.Module):
         self,
         input_channels: int = 3,
         n_actions: int = 4,
-        hidden_dim: int = 128
+        hidden_dim: int = 256
     ):
         """
         初始化轻量CNN模型

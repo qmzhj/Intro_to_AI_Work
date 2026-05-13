@@ -216,14 +216,18 @@ class DQNAgent:
 
     def update_epsilon(self, episode: int, total_episodes: int):
         """
-        根据训练进度更新探索率
+        根据训练进度更新探索率（指数衰减）
+
+        指数衰减比线性衰减更合理：
+          - 早期快速降低随机探索，让 agent 更早开始利用学到的知识
+          - 后期缓慢逼近最小值，保持稳定探索基线
 
         Args:
             episode: 当前回合
-            total_episodes: 总回合数
+            total_episodes: 总回合数（未使用，保留参数兼容）
         """
-        progress = episode / total_episodes
-        self.epsilon = self.epsilon_start * (1 - progress) + self.epsilon_end * progress
+        decay_rate = 0.001
+        self.epsilon = self.epsilon_end + (self.epsilon_start - self.epsilon_end) * np.exp(-decay_rate * episode)
 
     def save(self, filepath: str):
         """

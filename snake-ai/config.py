@@ -27,7 +27,7 @@ class Config:
     CELL_SIZE = 20
 
     # 训练配置
-    TOTAL_EPISODES = 5000       # 每轮更快，总轮数可适当减少
+    TOTAL_EPISODES = 10000       # 每轮更快，总轮数可适当减少
     MAX_STEPS_PER_EPISODE = 200  # 12x12网格，200步足够找到食物
     SAVE_FREQ = 200             # 每N个回合保存一次
     EVAL_FREQ = 100             # 每N个回合评估一次
@@ -37,15 +37,25 @@ class Config:
     ALGO = "dqn"  # 可选: dqn / double_dqn / dueling_dqn
 
     # DQN配置
-    LEARNING_RATE = 3e-4        # 略微提高，加快收敛
+    LEARNING_RATE = 5e-4        # 略微提高学习率加速收敛
     GAMMA = 0.99
     EPSILON_START = 1.0
     EPSILON_END = 0.01
-    # epsilon_decay 改为线性衰减（由 update_epsilon 控制），此参数不再使用
-    EPSILON_DECAY = 0.995       # 保留但不再用于 train_step 内乘性衰减
-    BUFFER_SIZE = 50000         # 缩小缓冲区，节省内存
-    BATCH_SIZE = 64
-    TARGET_UPDATE_FREQ = 500    # 目标网络更新频率（步数）
+    EPSILON_DECAY = 0.995       # 保留但不再使用（由指数衰减替代）
+    BUFFER_SIZE = 50000
+    BATCH_SIZE = 128            # 增大批次大小，梯度更稳定
+    TARGET_UPDATE_FREQ = 300    # 降低目标网络更新间隔（每 300 步更新）
+
+    # PPO 配置
+    PPO_LEARNING_RATE = 3e-4       # PPO 学习率
+    GAE_LAMBDA = 0.95              # GAE 参数 λ
+    PPO_CLIP_EPSILON = 0.2         # PPO 裁剪参数 ε
+    PPO_ENTROPY_COEF = 0.01        # 熵正则化系数
+    PPO_VALUE_COEF = 0.5           # 价值损失系数
+    PPO_EPOCHS = 4                 # 每次更新对数据做几轮优化
+    PPO_MINI_BATCH_SIZE = 64       # 小批量大小
+    PPO_UPDATE_FREQ = 5            # 每 N 个 episode 更新一次
+    PPO_MAX_GRAD_NORM = 0.5        # 梯度裁剪最大范数
 
     # 日志配置
     LOG_INTERVAL = 10           # 每N个回合打印一次日志
