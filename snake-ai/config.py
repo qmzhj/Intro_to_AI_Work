@@ -28,7 +28,7 @@ class Config:
 
     # 训练配置
     TOTAL_EPISODES = 10000       # 每轮更快，总轮数可适当减少
-    MAX_STEPS_PER_EPISODE = 200  # 12x12网格，200步足够找到食物
+    MAX_STEPS_PER_EPISODE = 300  # 给更多步数探索
     SAVE_FREQ = 200             # 每N个回合保存一次
     EVAL_FREQ = 100             # 每N个回合评估一次
     EVAL_EPISODES = 10          # 评估回合数
@@ -46,16 +46,16 @@ class Config:
     BATCH_SIZE = 128            # 增大批次大小，梯度更稳定
     TARGET_UPDATE_FREQ = 300    # 降低目标网络更新间隔（每 300 步更新）
 
-    # PPO 配置
-    PPO_LEARNING_RATE = 3e-4       # PPO 学习率
+    # PPO 配置（v2：加强探索+稳定更新）
+    PPO_LEARNING_RATE = 5e-4       # PPO 学习率（↑ 3e-4 → 5e-4）
     GAE_LAMBDA = 0.95              # GAE 参数 λ
-    PPO_CLIP_EPSILON = 0.2         # PPO 裁剪参数 ε
-    PPO_ENTROPY_COEF = 0.01        # 熵正则化系数
+    PPO_CLIP_EPSILON = 0.15        # PPO 裁剪参数 ε（↓ 0.2 → 0.15，保守更新）
+    PPO_ENTROPY_COEF = 0.05        # 熵正则化系数（↑ 0.01 → 0.05，加强探索）
     PPO_VALUE_COEF = 0.5           # 价值损失系数
-    PPO_EPOCHS = 4                 # 每次更新对数据做几轮优化
-    PPO_MINI_BATCH_SIZE = 64       # 小批量大小
-    PPO_UPDATE_FREQ = 5            # 每 N 个 episode 更新一次
-    PPO_MAX_GRAD_NORM = 0.5        # 梯度裁剪最大范数
+    PPO_EPOCHS = 8                 # 每次更新做几轮优化（↑ 4 → 8）
+    PPO_MINI_BATCH_SIZE = 32       # 小批量大小（↓ 64 → 32）
+    PPO_UPDATE_FREQ = 3            # 每 N 个 episode 更新一次（↓ 5 → 3）
+    PPO_MAX_GRAD_NORM = 1.0        # 梯度裁剪最大范数（↑ 0.5 → 1.0）
 
     # 日志配置
     LOG_INTERVAL = 10           # 每N个回合打印一次日志
