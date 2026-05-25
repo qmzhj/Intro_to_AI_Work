@@ -57,5 +57,8 @@ class Config:
     PPO_UPDATE_FREQ = 3            # 每 N 个 episode 更新一次（↓ 5 → 3）
     PPO_MAX_GRAD_NORM = 1.0        # 梯度裁剪最大范数（↑ 0.5 → 1.0）
 
+    # 录制配置（用于事后可视化回放）
+    RECORD_INTERVAL = 200       # 每N个回合记录一次逐帧数据
+
     # 日志配置
     LOG_INTERVAL = 10           # 每N个回合打印一次日志

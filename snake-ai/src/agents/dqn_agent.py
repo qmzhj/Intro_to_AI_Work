@@ -139,6 +139,22 @@ class DQNAgent:
 
         return action
 
+    def get_action_values(self, state: np.ndarray) -> np.ndarray:
+        """
+        获取当前状态下四个动作的 Q 值（用于录制可视化数据）
+
+        Args:
+            state: 当前状态 (H, W, C)
+
+        Returns:
+            长度为 n_actions 的 Q 值数组
+        """
+        with torch.no_grad():
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            state_tensor = state_tensor.permute(0, 3, 1, 2)
+            q_values = self.policy_net(state_tensor)
+            return q_values.cpu().numpy()[0]
+
     def _compute_target_q(
         self,
         rewards: torch.Tensor,

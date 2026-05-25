@@ -192,6 +192,21 @@ class PPOAgent:
 
         return action.item(), log_prob.item(), value.item()
 
+    def get_action_probs(self, state: np.ndarray) -> np.ndarray:
+        """
+        获取当前状态下四个动作的概率分布（用于录制可视化数据）
+
+        Args:
+            state: (H, W, C) numpy 数组
+
+        Returns:
+            长度为 n_actions 的概率数组
+        """
+        with torch.no_grad():
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            action_probs, _ = self.model(state_tensor)
+            return action_probs.cpu().numpy()[0]
+
     def store_transition(
         self,
         state: np.ndarray,

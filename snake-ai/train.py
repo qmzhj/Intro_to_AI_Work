@@ -100,6 +100,8 @@ def train_agent(algo: str = "dqn"):
     experiment_dir = os.path.join(Config.EXPERIMENT_DIR, experiment_name)
     os.makedirs(experiment_dir, exist_ok=True)
     log_file = os.path.join(experiment_dir, 'training_log.txt')
+    recordings_dir = os.path.join(experiment_dir, 'recordings')
+    os.makedirs(recordings_dir, exist_ok=True)
 
     print(f"\n开始训练 {algo} 智能体")
     print(f"实验目录: {experiment_dir}")
@@ -116,10 +118,27 @@ def train_agent(algo: str = "dqn"):
 
         agent.update_epsilon(episode, Config.TOTAL_EPISODES)
 
+        # 录制逐帧数据
+        recording = (episode + 1) % Config.RECORD_INTERVAL == 0
+        if recording:
+            step_records = []
+
         for step in range(Config.MAX_STEPS_PER_EPISODE):
             action_int = agent.select_action(state, eval_mode=False)
             action = Action(action_int)
             next_state, reward, done, info = env.step(action)
+
+            if recording:
+                action_values = agent.get_action_values(state)
+                step_records.append({
+                    'snake_positions': env.snake_positions.copy(),
+                    'food_position': env.food_position,
+                    'action': action_int,
+                    'reward': reward,
+                    'score': info['score'],
+                    'action_values': action_values,
+                    'done': done,
+                })
 
             agent.replay_buffer.push(state, action_int, reward, next_state, done)
             loss = agent.train_step()
@@ -131,6 +150,37 @@ def train_agent(algo: str = "dqn"):
 
             if done:
                 break
+
+        # 保存录制数据
+        if recording:
+            n_steps = len(step_records)
+            max_len = max(len(r['snake_positions']) for r in step_records)
+            positions = np.full((n_steps, max_len, 2), -1, dtype=np.int32)
+            snake_lengths = np.zeros(n_steps, dtype=np.int32)
+            food_positions = np.zeros((n_steps, 2), dtype=np.int32)
+            actions = np.zeros(n_steps, dtype=np.int32)
+            rewards = np.zeros(n_steps, dtype=np.float32)
+            scores = np.zeros(n_steps, dtype=np.int32)
+            action_values = np.zeros((n_steps, 4), dtype=np.float32)
+            dones = np.zeros(n_steps, dtype=bool)
+            for i, r in enumerate(step_records):
+                pos_arr = np.array(r['snake_positions'], dtype=np.int32)
+                positions[i, :len(pos_arr)] = pos_arr
+                snake_lengths[i] = len(pos_arr)
+                food_positions[i] = r['food_position']
+                actions[i] = r['action']
+                rewards[i] = r['reward']
+                scores[i] = r['score']
+                action_values[i] = r['action_values']
+                dones[i] = r['done']
+            record_path = os.path.join(recordings_dir, f'episode_{episode+1:06d}.npz')
+            np.savez_compressed(record_path,
+                algo=algo, episode=episode+1,
+                positions=positions, snake_lengths=snake_lengths,
+                food_positions=food_positions, actions=actions,
+                rewards=rewards, scores=scores,
+                action_values=action_values, dones=dones,
+                grid_width=Config.GRID_WIDTH, grid_height=Config.GRID_HEIGHT)
 
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
@@ -219,6 +269,8 @@ def train_ppo():
     experiment_dir = os.path.join(Config.EXPERIMENT_DIR, experiment_name)
     os.makedirs(experiment_dir, exist_ok=True)
     log_file = os.path.join(experiment_dir, 'training_log.txt')
+    recordings_dir = os.path.join(experiment_dir, 'recordings')
+    os.makedirs(recordings_dir, exist_ok=True)
 
     print(f"\n开始训练 PPO 智能体")
     print(f"实验目录: {experiment_dir}")
@@ -238,11 +290,28 @@ def train_ppo():
         episode_length = 0
         episode_score = 0
 
+        # 录制逐帧数据
+        recording = (episode + 1) % Config.RECORD_INTERVAL == 0
+        if recording:
+            step_records = []
+
         # 收集一个 episode 的轨迹
         for step in range(Config.MAX_STEPS_PER_EPISODE):
             action_int, log_prob, value = agent.get_action_info(state)
             action = Action(action_int)
             next_state, reward, done, info = env.step(action)
+
+            if recording:
+                action_probs = agent.get_action_probs(state)
+                step_records.append({
+                    'snake_positions': env.snake_positions.copy(),
+                    'food_position': env.food_position,
+                    'action': action_int,
+                    'reward': reward,
+                    'score': info['score'],
+                    'action_values': action_probs,
+                    'done': done,
+                })
 
             agent.store_transition(state, action_int, reward, done, log_prob, value)
 
@@ -253,6 +322,37 @@ def train_ppo():
 
             if done:
                 break
+
+        # 保存录制数据
+        if recording:
+            n_steps = len(step_records)
+            max_len = max(len(r['snake_positions']) for r in step_records)
+            positions = np.full((n_steps, max_len, 2), -1, dtype=np.int32)
+            snake_lengths = np.zeros(n_steps, dtype=np.int32)
+            food_positions = np.zeros((n_steps, 2), dtype=np.int32)
+            actions = np.zeros(n_steps, dtype=np.int32)
+            rewards = np.zeros(n_steps, dtype=np.float32)
+            scores = np.zeros(n_steps, dtype=np.int32)
+            action_values = np.zeros((n_steps, 4), dtype=np.float32)
+            dones = np.zeros(n_steps, dtype=bool)
+            for i, r in enumerate(step_records):
+                pos_arr = np.array(r['snake_positions'], dtype=np.int32)
+                positions[i, :len(pos_arr)] = pos_arr
+                snake_lengths[i] = len(pos_arr)
+                food_positions[i] = r['food_position']
+                actions[i] = r['action']
+                rewards[i] = r['reward']
+                scores[i] = r['score']
+                action_values[i] = r['action_values']
+                dones[i] = r['done']
+            record_path = os.path.join(recordings_dir, f'episode_{episode+1:06d}.npz')
+            np.savez_compressed(record_path,
+                algo='ppo', episode=episode+1,
+                positions=positions, snake_lengths=snake_lengths,
+                food_positions=food_positions, actions=actions,
+                rewards=rewards, scores=scores,
+                action_values=action_values, dones=dones,
+                grid_width=Config.GRID_WIDTH, grid_height=Config.GRID_HEIGHT)
 
         # Episode 结束 → 计算 GAE
         agent.end_episode()
