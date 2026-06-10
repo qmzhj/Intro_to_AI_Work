@@ -27,7 +27,7 @@ class Config:
     CELL_SIZE = 20
 
     # 训练配置
-    TOTAL_EPISODES = 10000       # 每轮更快，总轮数可适当减少
+    TOTAL_EPISODES = 5000       # 每轮更快，总轮数可适当减少
     MAX_STEPS_PER_EPISODE = 300  # 给更多步数探索
     SAVE_FREQ = 200             # 每N个回合保存一次
     EVAL_FREQ = 100             # 每N个回合评估一次
