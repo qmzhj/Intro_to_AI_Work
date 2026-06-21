@@ -88,12 +88,12 @@ class RunData:
 def render_frame(sd, cs):
     w, h = GRID_W * cs, GRID_H * cs
     surf = pygame.Surface((w, h))
-    surf.fill((0, 0, 0))
+    surf.fill((255, 255, 255))
     # grid
     for x in range(0, w, cs):
-        pygame.draw.line(surf, (40, 40, 50), (x, 0), (x, h))
+        pygame.draw.line(surf, (200, 200, 200), (x, 0), (x, h))
     for y in range(0, h, cs):
-        pygame.draw.line(surf, (40, 40, 50), (0, y), (w, y))
+        pygame.draw.line(surf, (200, 200, 200), (0, y), (w, y))
     pos, food, av = sd['snake_positions'], sd['food_position'], sd['action_values']
     # food
     if food[0] >= 0:

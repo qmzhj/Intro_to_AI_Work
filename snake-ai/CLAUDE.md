@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 训练（选择算法）
+python train.py --mode train --algo dqn         # 标准 DQN
+python train.py --mode train --algo double_dqn  # Double DQN
+python train.py --mode train --algo dueling_dqn # Dueling DQN
+python train.py --mode train --algo ppo          # PPO (Actor-Critic)
 python train.py --mode train --algo dqn
 python train.py --mode train --algo double_dqn
 python train.py --mode train --algo dueling_dqn
@@ -35,6 +39,26 @@ python visualize.py experiments/dqn_* --output demo.mp4  # 导出视频（无头
 
 # 安装依赖
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+## Quick Start
+
+```bash
+# 1. 测试游戏环境
+python src/envs/snake_env.py
+
+# 2. 测试各智能体
+python -m src.agents.dqn_agent     # DQN 系列
+python -m src.agents.ppo_agent      # PPO
+
+# 3. 训练
+python train.py --mode train --algo dqn
+
+# 4. 测试模型
+python train.py --mode test --model experiments/<实验目录>/best_model.pth
+
+# 5. 可视化回放
+python visualize.py experiments/<实验目录1> experiments/<实验目录2> --output demo.mp4
 ```
 
 ## Project Architecture
